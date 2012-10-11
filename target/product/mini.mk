@@ -139,8 +139,8 @@ PRODUCT_PACKAGES += \
     sensorservice \
     lint
 
-PRODUCT_COPY_FILES += \
-    system/core/rootdir/init.usb.rc:root/init.usb.rc \
+#PRODUCT_COPY_FILES += \
+#    system/core/rootdir/init.usb.rc:root/init.usb.rc \
 
 #----------------- originally from generic_no_telephony.mk ----------------
 
