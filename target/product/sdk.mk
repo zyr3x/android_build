@@ -19,6 +19,7 @@ PRODUCT_PROPERTY_OVERRIDES :=
 
 PRODUCT_PACKAGES := \
 	Calculator \
+	Camera \
 	DeskClock \
 	Email \
 	Exchange2 \
@@ -44,7 +45,6 @@ PRODUCT_PACKAGES := \
 	CustomLocale \
 	sqlite3 \
 	InputDevices \
-	LatinIME \
 	CertInstaller \
 	LiveWallpapersPicker \
 	ApiDemos \

@@ -25,12 +25,12 @@ PRODUCT_PACKAGES := \
     Bluetooth \
     Calculator \
     Calendar \
+    Camera \
     CertInstaller \
     DrmProvider \
     Email \
     Exchange \
     Gallery2 \
-    LatinIME \
     Launcher2 \
     Music \
     Provision \

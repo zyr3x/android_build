@@ -38,6 +38,7 @@ PRODUCT_PACKAGES := \
     QuickSearchBox \
     Settings \
     SystemUI \
+    Updater \
     CalendarProvider \
     bluetooth-health \
     hostapd \
