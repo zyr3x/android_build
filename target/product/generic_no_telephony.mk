@@ -30,7 +30,6 @@ PRODUCT_PACKAGES := \
     Exchange2 \
     Gallery2 \
     InputDevices \
-    LatinIME \
     Launcher2 \
     Music \
     Provision \
@@ -38,7 +37,6 @@ PRODUCT_PACKAGES := \
     QuickSearchBox \
     Settings \
     SystemUI \
-    Updater \
     CalendarProvider \
     bluetooth-health \
     hostapd \
