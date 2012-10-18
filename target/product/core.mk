@@ -121,7 +121,8 @@ PRODUCT_PACKAGES := \
 
 PRODUCT_COPY_FILES += \
     system/core/rootdir/init.trace.rc:root/init.trace.rc \
-#    system/core/rootdir/init.usb.rc:root/init.usb.rc \
+    system/core/rootdir/init.usb.rc:root/init.usb.rc
+
 # host-only dependencies
 ifeq ($(WITH_HOST_DALVIK),true)
     PRODUCT_PACKAGES += \
