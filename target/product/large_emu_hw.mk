@@ -32,7 +32,6 @@ PRODUCT_PACKAGES := \
     Exchange \
     Gallery2 \
     Launcher2 \
-    Music \
     Provision \
     Settings \
     Sync \

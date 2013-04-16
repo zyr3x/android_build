@@ -24,7 +24,6 @@ PRODUCT_PACKAGES := \
 	Email \
 	Exchange2 \
 	Gallery \
-	Music \
 	Mms \
 	OpenWnn \
 	libWnnEngDic \
