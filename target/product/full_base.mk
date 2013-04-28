@@ -36,11 +36,10 @@ PRODUCT_PACKAGES := \
 
 # Additional settings used in all AOSP builds
 PRODUCT_PROPERTY_OVERRIDES := \
-    ro.com.android.dateformat=MM-dd-yyyy
+    ro.com.android.dateformat=dd-MM-yyyy
 
 # Put en_US first in the list, so make it default.
-#PRODUCT_LOCALES := en_US
-PRODUCT_LOCALES := zh_CN
+PRODUCT_LOCALES := en_US
 
 # Get some sounds
 $(call inherit-product-if-exists, frameworks/base/data/sounds/AllAudio.mk)
