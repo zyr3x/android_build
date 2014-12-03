@@ -27,12 +27,25 @@ ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
     LOCAL_GLOBAL_CFLAGS += -DQCOM_BSP_LEGACY
     LOCAL_GLOBAL_CPPFLAGS += -DQCOM_BSP_LEGACY
     endif
+    # Enables legacy repos to be handled
+        ifeq ($(TARGET_QCOM_AUDIO_VARIANT),legacy)
+            QCOM_AUDIO_VARIANT := audio-legacy
+        else
+            QCOM_AUDIO_VARIANT := audio-caf/$(TARGET_BOARD_PLATFORM)
+        endif
+        ifeq ($(TARGET_QCOM_DISPLAY_VARIANT),legacy)
+            QCOM_DISPLAY_VARIANT := display-legacy
+            QCOM_MEDIA_VARIANT := media-legacy
+        else
+            QCOM_DISPLAY_VARIANT := display-caf/$(TARGET_BOARD_PLATFORM)
+            QCOM_MEDIA_VARIANT := media-caf/$(TARGET_BOARD_PLATFORM)
+        endif
 
-$(call project-set-path,qcom-audio,hardware/qcom/audio-caf/$(TARGET_BOARD_PLATFORM))
+$(call project-set-path,qcom-audio,hardware/qcom/$(QCOM_AUDIO_VARIANT))
 $(call qcom-set-path-variant,CAMERA,camera)
-$(call project-set-path,qcom-display,hardware/qcom/display-caf/$(TARGET_BOARD_PLATFORM))
+$(call project-set-path,qcom-display,hardware/qcom/$(QCOM_DISPLAY_VARIANT))
 $(call qcom-set-path-variant,GPS,gps)
-$(call project-set-path,qcom-media,hardware/qcom/media-caf/$(TARGET_BOARD_PLATFORM))
+$(call project-set-path,qcom-media,hardware/qcom/$(QCOM_MEDIA_VARIANT)/)
 $(call qcom-set-path-variant,SENSORS,sensors)
 else
 $(call project-set-path,qcom-audio,hardware/qcom/audio/default)
