@@ -13,6 +13,8 @@ Invoke ". build/envsetup.sh" from your shell to add the following functions to y
 - mmp:     Builds all of the modules in the current directory and pushes them to the device.
 - mmmp:    Builds all of the modules in the supplied directories and pushes them to the device.
 - mmma:    Builds all of the modules in the supplied directories, and their dependencies.
+- mms:     Short circuit builder. Quickly re-build the kernel, rootfs, boot and system images
+           without deep dependencies. Requires the full build to have run before.
 - cgrep:   Greps on all local C/C++ files.
 - ggrep:   Greps on all local Gradle files.
 - jgrep:   Greps on all local Java files.
@@ -27,6 +29,7 @@ Invoke ". build/envsetup.sh" from your shell to add the following functions to y
 - mka:      Builds using SCHED_BATCH on all processors
 - mkap:     Builds the module(s) using mka and pushes them to the device.
 - cmka:     Cleans and builds using mka.
+- repolastsync: Prints date and time of last repo sync.
 - reposync: Parallel repo sync using ionice and SCHED_BATCH
 - repopick: Utility to fetch changes from Gerrit.
 - installboot: Installs a boot.img to the connected device.
@@ -226,6 +229,10 @@ function setpaths()
 
     unset ANDROID_HOST_OUT
     export ANDROID_HOST_OUT=$(get_abs_build_var HOST_OUT)
+
+    if [ -n "$ANDROID_CCACHE_DIR" ]; then
+        export CCACHE_DIR=$ANDROID_CCACHE_DIR
+    fi
 
     # needed for building linux on MacOS
     # TODO: fix the path
@@ -733,7 +740,7 @@ function eat()
             done
             echo "Device Found.."
         fi
-    if (adb shell cat /system/build.prop | grep -q "ro.cm.device=$CM_BUILD");
+    if (adb shell getprop ro.cm.device | grep -q "$CM_BUILD");
     then
         # if adbd isn't root we can't write to /cache/recovery/
         adb root
@@ -905,7 +912,12 @@ function mmm()
                 case $DIR in
                   showcommands | snod | dist | incrementaljavac) ARGS="$ARGS $DIR";;
                   GET-INSTALL-PATH) GET_INSTALL_PATH=$DIR;;
-                  *) echo "No Android.mk in $DIR."; return 1;;
+                  *) if [ -d $DIR ]; then
+                         echo "No Android.mk in $DIR.";
+                     else
+                         echo "Couldn't locate the directory $DIR";
+                     fi
+                     return 1;;
                 esac
             fi
         done
@@ -1251,7 +1263,7 @@ function gdbclient() {
     ROOT=`realpath .`
   fi
 
-  local OUT_ROOT="$ROOT/out/target/product/$DEVICE"
+  local OUT_ROOT="$ANDROID_PRODUCT_OUT"
   local SYMBOLS_DIR="$OUT_ROOT/symbols"
 
   if [ ! -d $SYMBOLS_DIR ]; then
@@ -1972,7 +1984,7 @@ function installboot()
     sleep 1
     adb wait-for-online shell mount /system 2>&1 > /dev/null
     adb wait-for-online remount
-    if (adb shell cat /system/build.prop | grep -q "ro.cm.device=$CM_BUILD");
+    if (adb shell getprop ro.cm.device | grep -q "$CM_BUILD");
     then
         adb push $OUT/boot.img /cache/
         for i in $OUT/system/lib/modules/*;
@@ -2017,7 +2029,7 @@ function installrecovery()
     sleep 1
     adb wait-for-online shell mount /system 2>&1 >> /dev/null
     adb wait-for-online remount
-    if (adb shell cat /system/build.prop | grep -q "ro.cm.device=$CM_BUILD");
+    if (adb shell getprop ro.cm.device | grep -q "$CM_BUILD");
     then
         adb push $OUT/recovery.img /cache/
         adb shell dd if=/cache/recovery.img of=$PARTITION
@@ -2324,14 +2336,20 @@ function cmrebase() {
 }
 
 function mka() {
-    case `uname -s` in
-        Darwin)
-            make -j `sysctl hw.ncpu|cut -d" " -f2` "$@"
-            ;;
-        *)
-            mk_timer schedtool -B -n 1 -e ionice -n 1 make -j$(cat /proc/cpuinfo | grep "^processor" | wc -l) "$@"
-            ;;
-    esac
+    local T=$(gettop)
+    if [ "$T" ]; then
+        case `uname -s` in
+            Darwin)
+                make -C $T -j `sysctl hw.ncpu|cut -d" " -f2` "$@"
+                ;;
+            *)
+                mk_timer schedtool -B -n 1 -e ionice -n 1 make -C $T -j$(cat /proc/cpuinfo | grep "^processor" | wc -l) "$@"
+                ;;
+        esac
+
+    else
+        echo "Couldn't locate the top of the tree.  Try setting TOP."
+    fi
 }
 
 function cmka() {
@@ -2352,6 +2370,37 @@ function cmka() {
         mka clean
         mka
     fi
+}
+
+function mms() {
+    local T=$(gettop)
+    if [ -z "$T" ]
+    then
+        echo "Couldn't locate the top of the tree.  Try setting TOP."
+        return 1
+    fi
+
+    case `uname -s` in
+        Darwin)
+            local NUM_CPUS=$(sysctl hw.ncpu|cut -d" " -f2)
+            ONE_SHOT_MAKEFILE="__none__" \
+                make -C $T -j $NUM_CPUS "$@"
+            ;;
+        *)
+            local NUM_CPUS=$(cat /proc/cpuinfo | grep "^processor" | wc -l)
+            ONE_SHOT_MAKEFILE="__none__" \
+                mk_timer schedtool -B -n 1 -e ionice -n 1 \
+                make -C $T -j $NUM_CPUS "$@"
+            ;;
+    esac
+}
+
+
+function repolastsync() {
+    RLSPATH="$ANDROID_BUILD_TOP/.repo/.repo_fetchtimes.json"
+    RLSLOCAL=$(date -d "$(stat -c %z $RLSPATH)" +"%e %b %Y, %T %Z")
+    RLSUTC=$(date -d "$(stat -c %z $RLSPATH)" -u +"%e %b %Y, %T %Z")
+    echo "Last repo sync: $RLSLOCAL / $RLSUTC"
 }
 
 function reposync() {
@@ -2390,7 +2439,7 @@ function dopush()
         echo "Device Found."
     fi
 
-    if (adb shell cat /system/build.prop | grep -q "ro.cm.device=$CM_BUILD") || [ "$FORCE_PUSH" == "true" ];
+    if (adb shell getprop ro.cm.device | grep -q "$CM_BUILD") || [ "$FORCE_PUSH" == "true" ];
     then
     # retrieve IP and PORT info if we're using a TCP connection
     TCPIPPORT=$(adb devices | egrep '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+[^0-9]+' \
